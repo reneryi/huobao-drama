@@ -22,6 +22,10 @@ export function getTextProviderBaseUrl(config: AIConfig) {
     return joinProviderUrl(config.baseUrl, '/v1', '')
   }
 
+  if (provider === 'zhipu') {
+    return joinProviderUrl(config.baseUrl, '/paas/v4', '')
+  }
+
   if (provider === 'volcengine') {
     return joinProviderUrl(config.baseUrl, '/api/v3', '')
   }

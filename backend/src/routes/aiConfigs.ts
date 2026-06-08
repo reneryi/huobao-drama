@@ -59,12 +59,39 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
     return { method: 'POST', url: url.toString(), headers: geminiHeaders(apiKey, true), body: {} }
   }
 
+  if (p === 'openai' && serviceType === 'image') {
+    return {
+      method: 'POST',
+      url: joinProviderUrl(baseUrl, '/v1', '/images/generations'),
+      headers: bearerHeaders(apiKey, true),
+      body: { model: m || 'gpt-image-2', prompt: 'test image', size: '1024x1024', n: 1 },
+    }
+  }
+
   if (p === 'openai' || p === 'openrouter' || p === 'chatfire') {
     return {
       method: 'GET',
       url: joinProviderUrl(baseUrl, '/v1', '/models'),
       headers: bearerHeaders(apiKey),
       body: undefined,
+    }
+  }
+
+  if (p === 'zhipu') {
+    const path = serviceType === 'video'
+      ? '/videos/generations'
+      : serviceType === 'audio'
+        ? '/audio/speech'
+        : '/chat/completions'
+    return {
+      method: 'POST',
+      url: joinProviderUrl(baseUrl, '/paas/v4', path),
+      headers: bearerHeaders(apiKey, true),
+      body: serviceType === 'video'
+        ? { model: m || 'cogvideox-3', prompt: 'test', quality: 'speed', size: '1280x720', fps: 30, duration: 5 }
+        : serviceType === 'audio'
+          ? { model: m || 'glm-tts', input: '你好，这是语音测试。', voice: 'tongtong', response_format: 'wav' }
+        : { model: m || 'glm-4.7', messages: [{ role: 'user', content: 'test' }], stream: false },
     }
   }
 

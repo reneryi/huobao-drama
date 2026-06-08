@@ -1473,12 +1473,13 @@ const prodTabIdx = computed({
 })
 const frameMode = ref('first')
 const fallbackVoiceProfiles = [
-  { id: 'alloy', label: 'Alloy', gender: '中性', traits: '平衡、自然、克制', suitable: '通用叙述、旁白、需要稳定输出的角色' },
-  { id: 'echo', label: 'Echo', gender: '男声', traits: '低沉、稳重、冷静', suitable: '成熟男性、父辈、旁白、压迫感角色' },
-  { id: 'fable', label: 'Fable', gender: '男声', traits: '温暖、讲述感、表现力强', suitable: '男主、成长型角色、叙事担当' },
-  { id: 'onyx', label: 'Onyx', gender: '男声', traits: '深沉、有力、权威', suitable: '反派、强势角色、掌控型人物' },
-  { id: 'nova', label: 'Nova', gender: '女声', traits: '温柔、甜润、亲和', suitable: '女主、母亲、柔和配角' },
-  { id: 'shimmer', label: 'Shimmer', gender: '女声', traits: '明亮、活泼、年轻', suitable: '少女、轻快角色、跳脱配角' },
+  { id: 'tongtong', label: '彤彤', gender: '女声', traits: '自然、亲和、温柔', suitable: '女主、旁白、温柔角色' },
+  { id: 'xiaochen', label: '小陈', gender: '男声', traits: '清晰、自然、青年感', suitable: '男主、青年男性、日常对白' },
+  { id: 'chuichui', label: '锤锤', gender: '中性', traits: '活泼、轻快、有表现力', suitable: '配角、轻松角色、喜剧角色' },
+  { id: 'jam', label: 'Jam', gender: '中性', traits: '活泼、跳脱、趣味', suitable: '特殊角色、趣味配音' },
+  { id: 'kazi', label: 'Kazi', gender: '中性', traits: '鲜明、夸张、有记忆点', suitable: '特殊角色、喜剧配音' },
+  { id: 'douji', label: 'Douji', gender: '中性', traits: '灵动、可爱、轻快', suitable: '儿童向角色、可爱角色' },
+  { id: 'luodo', label: 'Luodo', gender: '中性', traits: '低沉、有趣、反差感', suitable: '特殊角色、反差角色' },
 ]
 const voiceProfiles = ref(fallbackVoiceProfiles)
 const voiceSelectOptions = computed(() => voiceProfiles.value.map(v => ({ label: `${v.label} · ${v.traits}`, value: v.id })))
@@ -1577,7 +1578,8 @@ const visualChars = computed(() => chars.value.filter(c => !isNarratorCharacter(
 const lockedImageConfigId = computed(() => episode.value?.image_config_id || episode.value?.imageConfigId || null)
 const lockedVideoConfigId = computed(() => episode.value?.video_config_id || episode.value?.videoConfigId || null)
 const lockedAudioConfigId = computed(() => episode.value?.audio_config_id || episode.value?.audioConfigId || null)
-const lockedAudioProvider = computed(() => audioConfigs.value.find(c => c.id === lockedAudioConfigId.value)?.provider || '')
+const defaultAudioConfig = computed(() => audioConfigs.value.find(c => c.is_active || c.isActive) || audioConfigs.value[0] || null)
+const lockedAudioProvider = computed(() => audioConfigs.value.find(c => c.id === lockedAudioConfigId.value)?.provider || defaultAudioConfig.value?.provider || 'zhipu')
 const lockedImageConfigLabel = computed(() => configLabel(imageConfigs.value.find(c => c.id === lockedImageConfigId.value)))
 const lockedVideoConfigLabel = computed(() => configLabel(videoConfigs.value.find(c => c.id === lockedVideoConfigId.value)))
 const lockedAudioConfigLabel = computed(() => configLabel(audioConfigs.value.find(c => c.id === lockedAudioConfigId.value)))

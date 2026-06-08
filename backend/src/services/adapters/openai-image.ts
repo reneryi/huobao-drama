@@ -17,16 +17,20 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
   provider = 'openai'
 
   buildGenerateRequest(config: AIConfig, record: ImageGenerationRecord): ProviderRequest {
-    // OpenAI 使用 size 字段，格式为 "1024x1024"
-    const size = record.size || '1024x1024'
+    const model = record.model || config.model || 'dall-e-3'
+    const isGptImage = model.toLowerCase().startsWith('gpt-image')
+    // OpenAI 图片模型对尺寸枚举比较严格；项目里常传 1920x1080，这里映射为 gpt-image 可接受的横图尺寸
+    const size = this.normalizeSize(record.size, isGptImage)
 
     const body: any = {
-      model: record.model || 'dall-e-3',
+      model,
       prompt: record.prompt,
       size,
       n: 1,
-      response_format: 'url', // 默认返回 URL，可选 'b64_json'
     }
+
+    // gpt-image 系列通常默认返回 b64_json，且部分兼容服务不接受 response_format=url
+    if (!isGptImage) body.response_format = 'url'
 
     return {
       url: joinProviderUrl(config.baseUrl, '/v1', '/images/generations'),
@@ -91,5 +95,13 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       return { data: b64, mimeType: 'image/png' }
     }
     return null
+  }
+
+  private normalizeSize(size?: string | null, isGptImage = false): string {
+    if (!isGptImage) return size || '1024x1024'
+    if (size === '1920x1080' || size === '1536x864' || size === '16:9') return '1536x1024'
+    if (size === '1080x1920' || size === '864x1536' || size === '9:16') return '1024x1536'
+    if (size === '1024x1024' || size === '1024x1536' || size === '1536x1024') return size
+    return '1024x1024'
   }
 }

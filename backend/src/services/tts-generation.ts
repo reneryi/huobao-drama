@@ -72,6 +72,27 @@ export async function generateTTS(params: TTSParams): Promise<string> {
     throw new Error(`TTS API error ${resp.status}: ${errText}`)
   }
 
+  const contentType = resp.headers.get('content-type') || ''
+  if (contentType.includes('audio/') || !contentType.includes('application/json')) {
+    const buffer = Buffer.from(await resp.arrayBuffer())
+    const format = contentType.includes('wav') ? 'wav' : contentType.includes('mpeg') ? 'mp3' : 'wav'
+    const audioDir = path.join(STORAGE_ROOT, 'audio')
+    fs.mkdirSync(audioDir, { recursive: true })
+    const filename = `${uuid()}.${format}`
+    const filePath = path.join(audioDir, filename)
+    fs.writeFileSync(filePath, buffer)
+
+    const relativePath = `static/audio/${filename}`
+    logTaskSuccess('AudioTask', 'tts-saved-binary', {
+      provider: config.provider,
+      voice: params.voice,
+      path: relativePath,
+      bytes: buffer.length,
+      contentType,
+    })
+    return relativePath
+  }
+
   const result = await resp.json()
   const parsed = adapter.parseResponse(result)
 

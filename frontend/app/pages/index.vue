@@ -51,7 +51,7 @@
           <h3 class="project-title">{{ d.title }}</h3>
 
           <div class="project-meta">
-            <span v-if="d.style" class="style-tag">{{ d.style }}</span>
+            <span v-if="d.style" class="style-tag">{{ styleLabel(d.style) }}</span>
             <span class="meta-item">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               {{ d.characters?.length || 0 }}
@@ -139,8 +139,15 @@ const dramas = ref([])
 const loading = ref(false)
 const showCreate = ref(false)
 const form = ref({ title: '', total_episodes: 1, style: '' })
-const styles = ['realistic', 'anime', 'ghibli', 'cinematic', 'comic', 'watercolor']
-const styleSelectOptions = computed(() => styles.map(s => ({ label: s, value: s })))
+const styleOptions = [
+  { label: '写实', value: 'realistic' },
+  { label: '动漫', value: 'anime' },
+  { label: '吉卜力', value: 'ghibli' },
+  { label: '电影感', value: 'cinematic' },
+  { label: '漫画', value: 'comic' },
+  { label: '水彩', value: 'watercolor' },
+]
+const styleSelectOptions = computed(() => styleOptions)
 
 async function load() {
   loading.value = true
@@ -193,6 +200,10 @@ function getProgress(d) {
   if (!d.episodes?.length) return 0
   const scripted = d.episodes.filter(e => e.script_content || e.scriptContent).length
   return Math.round((scripted / d.episodes.length) * 100)
+}
+
+function styleLabel(value) {
+  return styleOptions.find(s => s.value === value)?.label || value
 }
 
 onMounted(load)
