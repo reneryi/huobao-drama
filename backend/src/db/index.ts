@@ -15,6 +15,63 @@ sqlite.pragma('journal_mode = WAL')
 sqlite.pragma('busy_timeout = 30000')
 
 sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    global_role TEXT NOT NULL DEFAULT 'user',
+    status TEXT NOT NULL DEFAULT 'active',
+    last_login_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS user_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at TEXT,
+    user_agent TEXT,
+    ip TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id
+    ON user_sessions (user_id);
+  CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at
+    ON user_sessions (expires_at);
+
+  CREATE TABLE IF NOT EXISTS drama_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    drama_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    project_role TEXT NOT NULL,
+    created_by INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(drama_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_drama_members_drama_id
+    ON drama_members (drama_id);
+  CREATE INDEX IF NOT EXISTS idx_drama_members_user_id
+    ON drama_members (user_id);
+
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    resource_type TEXT,
+    resource_id TEXT,
+    detail TEXT,
+    ip TEXT,
+    created_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS dramas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,

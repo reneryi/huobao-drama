@@ -34,53 +34,92 @@
       </button>
     </div>
 
-    <!-- Episode List -->
-    <div class="section-label">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <rect x="2" y="2" width="20" height="20" rx="2.5"/>
-        <line x1="7" y1="8" x2="7" y2="16"/>
-        <line x1="10" y1="8" x2="10" y2="16"/>
-        <line x1="13" y1="8" x2="13" y2="16"/>
-        <line x1="16" y1="8" x2="16" y2="16"/>
-      </svg>
-      剧集列表
-    </div>
+    <div class="detail-grid">
+      <section>
+        <div class="section-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.5"/>
+            <line x1="7" y1="8" x2="7" y2="16"/>
+            <line x1="10" y1="8" x2="10" y2="16"/>
+            <line x1="13" y1="8" x2="13" y2="16"/>
+            <line x1="16" y1="8" x2="16" y2="16"/>
+          </svg>
+          剧集列表
+        </div>
 
-    <div class="ep-grid">
-      <div
-        v-for="(ep, i) in drama.episodes"
-        :key="ep.id"
-        class="card ep-card"
-        :style="{ animationDelay: `${i * 0.05}s` }"
-        @click="navigateTo(`/drama/${drama.id}/episode/${ep.episode_number || ep.episodeNumber}`)"
-      >
-        <div class="ep-number">E{{ String(ep.episode_number || ep.episodeNumber).padStart(2, '0') }}</div>
-        <div class="ep-body">
-          <span class="ep-title">{{ ep.title }}</span>
-          <div class="ep-status">
-            <span :class="['status-dot', hasScript(ep) ? 'dot-ready' : 'dot-pending']"></span>
-            <span class="status-text">{{ hasScript(ep) ? '已完成剧本' : '待编写' }}</span>
-            <span v-if="ep.duration" class="ep-duration">{{ ep.duration }}s</span>
+        <div class="ep-grid">
+          <div
+            v-for="(ep, i) in drama.episodes"
+            :key="ep.id"
+            class="card ep-card"
+            :style="{ animationDelay: `${i * 0.05}s` }"
+            @click="navigateTo(`/drama/${drama.id}/episode/${ep.episode_number || ep.episodeNumber}`)"
+          >
+            <div class="ep-number">E{{ String(ep.episode_number || ep.episodeNumber).padStart(2, '0') }}</div>
+            <div class="ep-body">
+              <span class="ep-title">{{ ep.title }}</span>
+              <div class="ep-status">
+                <span :class="['status-dot', hasScript(ep) ? 'dot-ready' : 'dot-pending']"></span>
+                <span class="status-text">{{ hasScript(ep) ? '已完成剧本' : '待编写' }}</span>
+                <span v-if="ep.duration" class="ep-duration">{{ ep.duration }}s</span>
+              </div>
+            </div>
+            <div class="ep-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+
+          <div v-if="!drama.episodes?.length" class="card ep-empty">
+            <div class="ep-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <p>点击上方「添加集」创建第一集</p>
           </div>
         </div>
-        <div class="ep-arrow">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
+      </section>
 
-      <!-- Empty episode state -->
-      <div v-if="!drama.episodes?.length" class="card ep-empty">
-        <div class="ep-empty-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
+      <aside class="card members-panel">
+        <div class="members-head">
+          <div>
+            <div class="section-label compact">项目成员</div>
+            <div class="members-desc">按项目角色控制访问和操作边界</div>
+          </div>
         </div>
-        <p>点击上方「添加集」创建第一集</p>
-      </div>
+        <div class="member-list">
+          <div v-for="m in members" :key="m.id" class="member-row">
+            <div class="member-main">
+              <div class="member-name">{{ m.display_name || m.username }}</div>
+              <div class="member-meta mono">{{ m.username }}</div>
+            </div>
+            <select class="input member-role" :value="m.project_role" @change="updateMemberRole(m, $event.target.value)">
+              <option value="owner">负责人</option>
+              <option value="producer">制片人</option>
+              <option value="editor">编辑</option>
+              <option value="viewer">只读</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" @click="removeMember(m)">移除</button>
+          </div>
+          <div v-if="!members.length" class="members-empty">暂无可管理成员或无成员管理权限</div>
+        </div>
+        <div class="add-member">
+          <select v-model.number="memberForm.user_id" class="input">
+            <option :value="0">选择用户</option>
+            <option v-for="u in addableUsers" :key="u.id" :value="u.id">{{ u.display_name || u.username }} · {{ u.username }}</option>
+          </select>
+          <select v-model="memberForm.project_role" class="input">
+            <option value="producer">制片人</option>
+            <option value="editor">编辑</option>
+            <option value="viewer">只读</option>
+          </select>
+          <button class="btn btn-primary btn-sm" :disabled="!memberForm.user_id" @click="addMember">添加成员</button>
+        </div>
+      </aside>
     </div>
 
     <div v-if="addDialog" class="dialog-mask" @click.self="addDialog = false">
@@ -151,7 +190,7 @@
 
 <script setup>
 import { toast } from 'vue-sonner'
-import { aiConfigAPI, dramaAPI, episodeAPI } from '~/composables/useApi'
+import { aiConfigAPI, dramaAPI, episodeAPI, usersAPI } from '~/composables/useApi'
 
 const route = useRoute()
 const drama = ref(null)
@@ -165,6 +204,9 @@ const audioConfigs = ref([])
 const newEpisodeImageConfigId = ref(null)
 const newEpisodeVideoConfigId = ref(null)
 const newEpisodeAudioConfigId = ref(null)
+const members = ref([])
+const users = ref([])
+const memberForm = reactive({ user_id: 0, project_role: 'editor' })
 
 function hasScript(ep) { return !!(ep.script_content || ep.scriptContent) }
 
@@ -179,6 +221,10 @@ const imageConfigOptions = computed(() => imageConfigs.value.map(c => ({ label: 
 const videoConfigOptions = computed(() => videoConfigs.value.map(c => ({ label: configLabel(c), value: c.id })))
 const audioConfigOptions = computed(() => audioConfigs.value.map(c => ({ label: configLabel(c), value: c.id })))
 const canCreateEpisode = computed(() => !!(newEpisodeImageConfigId.value && newEpisodeVideoConfigId.value && newEpisodeAudioConfigId.value))
+const addableUsers = computed(() => {
+  const memberIds = new Set(members.value.map(m => m.user_id))
+  return users.value.filter(u => !memberIds.has(u.id) && u.status === 'active')
+})
 
 async function load() {
   try {
@@ -206,6 +252,40 @@ async function loadConfigs() {
   }
 }
 
+async function loadMembers() {
+  try { members.value = await dramaAPI.members(dramaId) }
+  catch { members.value = [] }
+}
+
+async function loadUsers() {
+  try { users.value = await usersAPI.list() }
+  catch { users.value = [] }
+}
+
+async function addMember() {
+  try {
+    await dramaAPI.addMember(dramaId, memberForm)
+    memberForm.user_id = 0
+    toast.success('成员已添加')
+    await loadMembers()
+  } catch (e) { toast.error(e.message) }
+}
+
+async function updateMemberRole(member, role) {
+  try {
+    await dramaAPI.updateMember(dramaId, member.user_id, { project_role: role })
+    await loadMembers()
+  } catch (e) { toast.error(e.message) }
+}
+
+async function removeMember(member) {
+  if (!confirm(`确定移除 ${member.display_name || member.username}？`)) return
+  try {
+    await dramaAPI.removeMember(dramaId, member.user_id)
+    await loadMembers()
+  } catch (e) { toast.error(e.message) }
+}
+
 function openAddEpisode() {
   newEpisodeTitle.value = ''
   addDialog.value = true
@@ -231,7 +311,7 @@ async function addEpisode() {
   }
 }
 
-onMounted(() => { load(); loadConfigs() })
+onMounted(() => { load(); loadConfigs(); loadMembers(); loadUsers() })
 </script>
 
 <style scoped>
@@ -291,8 +371,11 @@ onMounted(() => { load(); loadConfigs() })
   margin-bottom: 12px;
 }
 
+.detail-grid { display: grid; grid-template-columns: minmax(0, 760px) 360px; gap: 24px; align-items: start; }
+.section-label.compact { margin-bottom: 2px; }
+
 /* Episode Grid */
-.ep-grid { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.ep-grid { display: flex; flex-direction: column; gap: 10px; }
 
 .ep-card {
   display: flex; align-items: center; gap: 16px;
@@ -348,6 +431,17 @@ onMounted(() => { load(); loadConfigs() })
   width: 48px; height: 48px; border-radius: 50%;
   background: var(--bg-2); display: flex; align-items: center; justify-content: center;
 }
+
+.members-panel { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.members-head { display: flex; justify-content: space-between; gap: 10px; }
+.members-desc { font-size: 12px; color: var(--text-3); }
+.member-list { display: flex; flex-direction: column; gap: 8px; }
+.member-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; align-items: center; gap: 8px; }
+.member-name { font-size: 13px; font-weight: 700; }
+.member-meta { font-size: 11px; color: var(--text-3); }
+.member-role { padding: 6px 10px; font-size: 12px; }
+.members-empty { font-size: 12px; color: var(--text-3); padding: 10px 0; }
+.add-member { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
 
 .dialog-mask {
   position: fixed;

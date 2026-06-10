@@ -6,6 +6,7 @@ import { generateImage } from '../services/image-generation.js'
 import { splitGridImage } from '../services/grid-split.js'
 import { createAgent } from '../agents/index.js'
 import { logTaskError, logTaskPayload, logTaskProgress } from '../utils/task-logger.js'
+import { getDramaIdByStoryboardId, requireExistingDramaAccess } from '../middleware/auth.js'
 
 const app = new Hono()
 
@@ -397,6 +398,8 @@ app.post('/prompt', async (c) => {
 
   if (!storyboard_ids?.length) return badRequest(c, 'storyboard_ids required')
   if (!rows || !cols) return badRequest(c, 'rows and cols required')
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(Number(storyboard_ids[0])), ['owner', 'producer', 'editor'])
+  if (blocked) return blocked
 
   const storyboards = storyboard_ids.map((id: number) => {
     const [sb] = db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id)).all()
@@ -493,6 +496,8 @@ app.post('/generate', async (c) => {
 
   if (!storyboard_ids?.length) return badRequest(c, 'storyboard_ids required')
   if (!rows || !cols) return badRequest(c, 'rows and cols required')
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(Number(storyboard_ids[0])), ['owner', 'producer'])
+  if (blocked) return blocked
 
   const storyboards = storyboard_ids.map((id: number) => {
     const [sb] = db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id)).all()
@@ -561,6 +566,8 @@ app.post('/split', async (c) => {
   if (!image_generation_id) return badRequest(c, 'image_generation_id required')
   if (!rows || !cols) return badRequest(c, 'rows and cols required')
   if (!assignments?.length) return badRequest(c, 'assignments required')
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(Number(assignments[0]?.storyboard_id)), ['owner', 'producer'])
+  if (blocked) return blocked
 
   const [imgRecord] = db.select().from(schema.imageGenerations)
     .where(eq(schema.imageGenerations.id, image_generation_id)).all()
@@ -604,6 +611,10 @@ app.get('/status/:id', async (c) => {
   const [row] = db.select().from(schema.imageGenerations)
     .where(eq(schema.imageGenerations.id, id)).all()
   if (!row) return badRequest(c, 'Not found')
+  if (row.dramaId) {
+    const blocked = requireExistingDramaAccess(c, row.dramaId)
+    if (blocked) return blocked
+  }
   return success(c, {
     id: row.id,
     status: row.status,

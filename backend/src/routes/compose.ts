@@ -5,12 +5,15 @@ import { success, badRequest } from '../utils/response.js'
 import { composeStoryboard } from '../services/ffmpeg-compose.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 import { toSnakeCase } from '../utils/transform.js'
+import { getDramaIdByEpisodeId, getDramaIdByStoryboardId, requireExistingDramaAccess } from '../middleware/auth.js'
 
 const app = new Hono()
 
 // POST /storyboards/:id/compose — 合成单个镜头
 app.post('/storyboards/:id/compose', async (c) => {
   const id = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(id), ['owner', 'producer'])
+  if (blocked) return blocked
   try {
     logTaskStart('ComposeAPI', 'single-compose', { storyboardId: id })
     const composedUrl = await composeStoryboard(id)
@@ -25,6 +28,8 @@ app.post('/storyboards/:id/compose', async (c) => {
 // POST /episodes/:id/compose-all — 批量合成全部镜头
 app.post('/episodes/:id/compose-all', async (c) => {
   const episodeId = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByEpisodeId(episodeId), ['owner', 'producer'])
+  if (blocked) return blocked
   const storyboards = db.select().from(schema.storyboards)
     .where(eq(schema.storyboards.episodeId, episodeId))
     .orderBy(schema.storyboards.storyboardNumber)
@@ -62,6 +67,8 @@ app.post('/episodes/:id/compose-all', async (c) => {
 // GET /episodes/:id/compose-status — 查询批量合成状态
 app.get('/episodes/:id/compose-status', async (c) => {
   const episodeId = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByEpisodeId(episodeId))
+  if (blocked) return blocked
   const storyboards = db.select().from(schema.storyboards)
     .where(eq(schema.storyboards.episodeId, episodeId))
     .orderBy(schema.storyboards.storyboardNumber)

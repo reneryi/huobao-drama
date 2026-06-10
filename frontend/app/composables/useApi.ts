@@ -1,7 +1,7 @@
 const BASE = '/api/v1'
 
 async function req<T = any>(method: string, path: string, body?: any): Promise<T> {
-  const opts: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+  const opts: RequestInit = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } }
   if (body) opts.body = JSON.stringify(body)
 
   const start = performance.now()
@@ -14,6 +14,9 @@ async function req<T = any>(method: string, path: string, body?: any): Promise<T
 
     if (!resp.ok || (json.code && json.code >= 400)) {
       console.log(`%c[API] %c${method} ${path} %c${resp.status} %c${ms}ms`, 'color:#888', 'color:#ef5350', 'color:#ef5350;font-weight:bold', 'color:#888', json.message || '')
+      if (resp.status === 401 && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
       throw new Error(json.message || `${resp.status}`)
     }
 
@@ -35,12 +38,30 @@ export const api = {
   del: <T = any>(p: string) => req<T>('DELETE', p),
 }
 
+export const authAPI = {
+  login: (data: { username: string; password: string }) => api.post('/auth/login', data),
+  logout: () => api.post('/auth/logout', {}),
+  me: () => api.get('/auth/me'),
+}
+
+export const usersAPI = {
+  list: () => api.get('/users'),
+  create: (data: any) => api.post('/users', data),
+  update: (id: number, data: any) => api.put(`/users/${id}`, data),
+  updatePassword: (id: number, password: string) => api.put(`/users/${id}/password`, { password }),
+  del: (id: number) => api.del(`/users/${id}`),
+}
+
 export const dramaAPI = {
   list: () => api.get<{ items: any[] }>('/dramas'),
   get: (id: number) => api.get(`/dramas/${id}`),
   create: (data: any) => api.post('/dramas', data),
   update: (id: number, data: any) => api.put(`/dramas/${id}`, data),
   del: (id: number) => api.del(`/dramas/${id}`),
+  members: (id: number) => api.get(`/dramas/${id}/members`),
+  addMember: (id: number, data: any) => api.post(`/dramas/${id}/members`, data),
+  updateMember: (id: number, userId: number, data: any) => api.put(`/dramas/${id}/members/${userId}`, data),
+  removeMember: (id: number, userId: number) => api.del(`/dramas/${id}/members/${userId}`),
 }
 
 export const episodeAPI = {

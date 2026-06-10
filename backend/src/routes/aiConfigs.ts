@@ -5,6 +5,7 @@ import { success, notFound, created, badRequest, now } from '../utils/response.j
 import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
+import { requireGlobalRole } from '../middleware/auth.js'
 
 const app = new Hono()
 
@@ -163,6 +164,13 @@ app.get('/', async (c) => {
 })
 
 // POST /ai-configs
+app.use('/test', requireGlobalRole('admin', 'operator'))
+app.use('/huobao-preset', requireGlobalRole('admin', 'operator'))
+app.use('*', async (c, next) => {
+  if (c.req.method === 'GET') return next()
+  return requireGlobalRole('admin', 'operator')(c, next)
+})
+
 app.post('/', async (c) => {
   const body = await c.req.json()
   const ts = now()

@@ -5,6 +5,7 @@ import { Hono } from 'hono'
 import { createAgent, validAgentTypes } from '../agents/index.js'
 import { success, badRequest } from '../utils/response.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { requireExistingDramaAccess } from '../middleware/auth.js'
 
 const app = new Hono()
 
@@ -43,6 +44,8 @@ app.post('/:type/chat', async (c) => {
     logTaskError('Agent', agentType, { reason: 'missing drama_id or episode_id' })
     return badRequest(c, 'drama_id and episode_id are required')
   }
+  const blocked = requireExistingDramaAccess(c, Number(drama_id), ['owner', 'producer', 'editor'])
+  if (blocked) return blocked
 
   const agent = createAgent(agentType, episode_id, drama_id)
   if (!agent) {

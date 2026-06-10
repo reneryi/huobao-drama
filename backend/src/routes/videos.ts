@@ -4,6 +4,7 @@ import { db, schema } from '../db/index.js'
 import { success, created, badRequest } from '../utils/response.js'
 import { generateVideo } from '../services/video-generation.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { getDramaIdByStoryboardId, requireExistingDramaAccess } from '../middleware/auth.js'
 
 const app = new Hono()
 
@@ -11,6 +12,9 @@ const app = new Hono()
 app.post('/', async (c) => {
   const body = await c.req.json()
   if (!body.prompt) return badRequest(c, 'prompt is required')
+  const dramaId = body.storyboard_id ? getDramaIdByStoryboardId(Number(body.storyboard_id)) : Number(body.drama_id || 0)
+  const blocked = requireExistingDramaAccess(c, dramaId, ['owner', 'producer'])
+  if (blocked) return blocked
 
   try {
     let configId: number | undefined = body.config_id
@@ -59,6 +63,10 @@ app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const [row] = db.select().from(schema.videoGenerations)
     .where(eq(schema.videoGenerations.id, id)).all()
+  if (row?.dramaId) {
+    const blocked = requireExistingDramaAccess(c, row.dramaId)
+    if (blocked) return blocked
+  }
   return success(c, row || null)
 })
 
@@ -66,6 +74,10 @@ app.get('/:id', async (c) => {
 app.get('/', async (c) => {
   const storyboardId = c.req.query('storyboard_id')
   const dramaId = c.req.query('drama_id')
+  const storyboardDramaId = storyboardId ? getDramaIdByStoryboardId(Number(storyboardId)) : null
+  const accessDramaId = storyboardDramaId || (dramaId ? Number(dramaId) : null)
+  const blocked = accessDramaId ? requireExistingDramaAccess(c, accessDramaId) : null
+  if (blocked) return blocked
 
   let rows = db.select().from(schema.videoGenerations).all()
 
@@ -78,6 +90,11 @@ app.get('/', async (c) => {
 // DELETE /videos/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const [row] = db.select().from(schema.videoGenerations).where(eq(schema.videoGenerations.id, id)).all()
+  if (row?.dramaId) {
+    const blocked = requireExistingDramaAccess(c, row.dramaId, ['owner', 'producer'])
+    if (blocked) return blocked
+  }
   db.delete(schema.videoGenerations).where(eq(schema.videoGenerations.id, id)).run()
   return success(c)
 })

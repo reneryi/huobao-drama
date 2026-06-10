@@ -5,6 +5,7 @@ import { success, created, now, badRequest } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { generateTTS } from '../services/tts-generation.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import { getDramaIdByEpisodeId, getDramaIdByStoryboardId, requireExistingDramaAccess } from '../middleware/auth.js'
 
 const app = new Hono()
 
@@ -68,6 +69,8 @@ function validateStoryboardBindings(episodeId: number, sceneId: number | null | 
 // POST /storyboards
 app.post('/', async (c) => {
   const body = await c.req.json()
+  const blocked = requireExistingDramaAccess(c, getDramaIdByEpisodeId(Number(body.episode_id)), ['owner', 'producer', 'editor'])
+  if (blocked) return blocked
   const ts = now()
   logTaskStart('StoryboardAPI', 'create', {
     episodeId: body.episode_id,
@@ -106,6 +109,8 @@ app.post('/', async (c) => {
 // PUT /storyboards/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(id), ['owner', 'producer', 'editor'])
+  if (blocked) return blocked
   const body = await c.req.json()
   const [storyboard] = db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id)).all()
   if (!storyboard) return badRequest(c, '镜头不存在')
@@ -154,6 +159,8 @@ app.put('/:id', async (c) => {
 // POST /storyboards/:id/generate-tts
 app.post('/:id/generate-tts', async (c) => {
   const id = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(id), ['owner', 'producer'])
+  if (blocked) return blocked
   const [sb] = db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id)).all()
   if (!sb) return badRequest(c, '镜头不存在')
   const parsedDialogue = parseDialogueForTTS(sb.dialogue)
@@ -210,6 +217,8 @@ app.post('/:id/generate-tts', async (c) => {
 // DELETE /storyboards/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const blocked = requireExistingDramaAccess(c, getDramaIdByStoryboardId(id), ['owner', 'producer', 'editor'])
+  if (blocked) return blocked
   logTaskStart('StoryboardAPI', 'delete', { storyboardId: id })
   db.delete(schema.storyboardCharacters).where(eq(schema.storyboardCharacters.storyboardId, id)).run()
   db.delete(schema.storyboards).where(eq(schema.storyboards.id, id)).run()

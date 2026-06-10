@@ -22,12 +22,18 @@ import grid from './routes/grid.js'
 import skills from './routes/skills.js'
 import webhooks from './routes/webhooks.js'
 import aiVoices from './routes/aiVoices.js'
+import auth from './routes/auth.js'
+import users from './routes/users.js'
+import { requireAuth, requireGlobalRole } from './middleware/auth.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
+import { ensureDefaultAdmin } from './services/auth.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '../..')
 
 const app = new Hono()
+
+ensureDefaultAdmin()
 
 // Middleware
 app.use('*', cors({
@@ -42,6 +48,15 @@ app.get('/api/v1/health', (c) => c.json({ status: 'ok', timestamp: new Date().to
 
 // API routes
 const api = new Hono()
+api.route('/auth', auth)
+api.use('*', requireAuth)
+api.use('/agent-configs', requireGlobalRole('admin', 'operator'))
+api.use('/agent-configs/*', requireGlobalRole('admin', 'operator'))
+api.use('/skills', requireGlobalRole('admin', 'operator'))
+api.use('/skills/*', requireGlobalRole('admin', 'operator'))
+api.use('/ai-voices', requireGlobalRole('admin', 'operator'))
+api.use('/ai-voices/*', requireGlobalRole('admin', 'operator'))
+api.route('/users', users)
 api.route('/dramas', dramas)
 api.route('/episodes', episodes)
 api.route('/storyboards', storyboards)
